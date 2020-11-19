@@ -5,7 +5,7 @@
 import wolframalpha
 import PySimpleGUI as sg
 
-client = wolframalpha.Client("7TWTWA-RV8A4TLYGT")  # https://developer.wolframalpha.com/portal/myapps/
+client = wolframalpha.Client("YOUR-APPID-HERE")  # https://developer.wolframalpha.com/portal/myapps/
 
 sg.theme('DarkBlue2')  # colours -> tinyurl.com/y2frr9sc
 layout = [[sg.Text('WolframAlpha Search')],
