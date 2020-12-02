@@ -1,5 +1,6 @@
 # TODO: make uuuh prettier
-# TODO: add a menubar?
+# TODO: add a menubar - DO IT
+# TODO: menubar: save, load, new?, change theme, about, etc
 
 
 import PySimpleGUI as sg
@@ -8,7 +9,9 @@ from datetime import date
 
 layout = [
     [sg.T('', size=(8, 1), key='-DATE-'), sg.CalendarButton('Set Date'), sg.I(key='-TASK-', size=(30, 1))],
-    [sg.B('Add Task', key='-ADD-'), sg.B('Save', key='-SAVE-'), sg.B('Exit', key='-EXIT-')],
+    [sg.B('Add Task', key='-ADD-')],
+    [sg.B('Save', key='-SAVE-'), sg.B('Load', key='-LOAD-')],
+    [sg.B('Exit', key='-EXIT-')]
 ]
 
 window = sg.Window('Todo', layout)
@@ -22,7 +25,11 @@ def create_task(tasks):
                                                                                             enable_events = True)] for
                idx, t in enumerate(tasks, start = 1)]
     # add buttons
-    layout += [[sg.B('Add Task', key='-ADD-'), sg.B('Save', key='-SAVE-'), sg.B('Exit', key='-EXIT-')]]
+    layout += [
+        [sg.B('Add Task', key = '-ADD-')],
+        [sg.B('Save', key = '-SAVE-'), sg.B('Load', key = '-LOAD-')],
+        [sg.B('Exit', key = '-EXIT-')]
+    ]
     # make new window, close existing, make new window main window
     window1 = sg.Window('Todo', layout)
     
@@ -47,6 +54,17 @@ def file_save_as():
                 f.write(task+'\n')
     return filename
 
+
+def load_file():
+    filename = sg.popup_get_file('Browse', file_types=(('Text Files', '*.txt'),))
+    if filename not in (None, ''):
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                line_stripped = line.rstrip('\n')
+                tasks.append(line_stripped)
+
+    return filename
 
 tasks = []
 
@@ -81,3 +99,8 @@ while True:
         sg.popup('File saved')
     elif event in ('Save As',):
         filename = file_save_as()
+    elif event == '-LOAD-':
+        filename = load_file()
+        window1 = create_task(tasks)
+        window.close()
+        window = window1
