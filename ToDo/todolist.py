@@ -1,53 +1,93 @@
-# TODO: make uuuh prettier
-# TODO: add a menubar - DO IT
-# TODO: menubar: save, load, new?, change theme, about, etc
-
+# TODO: load_from_temp duplicates tasks, need to figure out why and stop it
+# TODO: comment code for reasons
+# TODO: add popups/windows for about and help
 
 import PySimpleGUI as sg
-import os
+from os import path, remove
 from datetime import date
+import shutil
 
-layout = [
-    [sg.T('', size=(8, 1), key='-DATE-'), sg.CalendarButton('Set Date'), sg.I(key='-TASK-', size=(30, 1))],
-    [sg.B('Add Task', key='-ADD-')],
-    [sg.B('Save', key='-SAVE-'), sg.B('Load', key='-LOAD-')],
-    [sg.B('Exit', key='-EXIT-')]
+# some vars
+tool_menu = [
+    ['File',['Save', 'Load']],
+    ['Options',['Settings']],
+    ['About',['Help', 'About']]   # help tells what things do
 ]
 
-window = sg.Window('Todo', layout)
+tasks = []
+
+today = date.today().strftime('%d%b%Y')
+
+def create_main_window():
+    sg.theme(sg.user_settings_get_entry('theme', None))
+
+    layout = [
+        [sg.Menu(tool_menu,)],
+        [sg.T('', size=(8, 1), key='-DATE-'), sg.CalendarButton('Set Date'), sg.I(key='-TASK-', size=(30, 1))],
+        [sg.B('Add Task', key='-ADD-')],
+        [sg.HSep()],
+        [sg.T('TASKS')],
+        [sg.HSep()],
+        [sg.B('Exit', key='-EXIT-')]
+    ]
+
+    return sg.Window('Todo',  layout)
+
 
 def create_task(tasks):
     layout = [
-        [sg.T('', size = (8, 1), key='-DATE-'), sg.CalendarButton('Set Date'), sg.I(key='-TASK-', size = (30, 1))]
+        [sg.Menu(tool_menu)],
+        [sg.T('', size=(8, 1), key='-DATE-'), sg.CalendarButton('Set Date'), sg.I(key='-TASK-', size=(30, 1))],
+        [sg.B('Add Task', key='-ADD-')],
+        [sg.HSep()],
+        [sg.T('TASKS')],
     ]
-    # dynamically add to layout: taskid, task, delete button for each task in tasks
-    layout += [[sg.T(idx, size = (3, 1)), sg.T(t, size = (30, 1), key=f'-TX-{idx}'), sg.T('x', key=f'-DEL-{idx}',
-                                                                                            enable_events = True)] for
-               idx, t in enumerate(tasks, start = 1)]
-    # add buttons
+
+    layout += [[sg.T(idx, size=(3,1)), sg.T(t, size=(30, 1), key=f'-TX-{idx}'), sg.T('x', key=f'-DEL-{idx}',
+                                                                                     enable_events=True)] for idx,
+                                                                                                              t in enumerate(tasks, start=1)]
+
     layout += [
-        [sg.B('Add Task', key = '-ADD-')],
-        [sg.B('Save', key = '-SAVE-'), sg.B('Load', key = '-LOAD-')],
-        [sg.B('Exit', key = '-EXIT-')]
+        [sg.HSep()],
+        [sg.B('Exit', key='-EXIT-')]
     ]
-    # make new window, close existing, make new window main window
-    window1 = sg.Window('Todo', layout)
-    
-    return window1
+
+    window = sg.Window('Todo', layout)
+
+    return window
+
+
+def make_theme_window():
+    sg.theme(sg.user_settings_get_entry('theme', None))
+
+    layout = [
+        [sg.T('Current Theme')],
+        [sg.Ok(), sg.B('Theme', key='-THEME-'), sg.B('Exit')]
+    ]
+
+    return sg.Window('Current Theme', layout)
 
 
 def save_file(filename):
-    if not os.path.exists(filename):
+    if not path.exists(filename):
         if filename not in (None, ''):
             with open(filename, 'w') as f:
                 for task in tasks:
                     f.write(task+'\n')
     else:
-        file_save_as()
+        save_file_as()
 
 
-def file_save_as():
-    filename = sg.popup_get_file('Save File', save_as=True, no_window=True, file_types=(('Text Files', '*.txt'),))
+# sep function for temp file handling because we don't need save_file_as for this
+def save_temp_file(filename):
+    if filename not in (None, ''):
+        with open(filename, 'w') as f:
+            for task in tasks:
+                f.write(task+'\n')
+
+
+def save_file_as():
+    filename = sg.popup_get_file('Save File', save_as=True, file_types=(('Text Files', '*.txt'),))
     if filename not in (None, '') and not isinstance(filename, tuple):
         with open(filename, 'w') as f:
             for task in tasks:
@@ -63,44 +103,80 @@ def load_file():
             for line in lines:
                 line_stripped = line.rstrip('\n')
                 tasks.append(line_stripped)
-
     return filename
 
-tasks = []
 
-today = date.today()
-cur_date = today.strftime('%d%b%Y')
+def load_temp_file(filename):
+    if filename not in (None, ''):
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                line_stripped = line.rstrip('\n')
+                tasks.append(line_stripped)
+    dedup_tasks = list(dict.fromkeys(tasks))  # convert to dict to remove dups, reconvert to list
+    return dedup_tasks
 
-while True:
-    event, values = window.read()
-    if event in ['-EXIT-', sg.WIN_CLOSED]:
-        break
-    if event == '-ADD-':
-        # get value in -TASK-, get value of -DATE-, split on space, grab index 0
-        task = values['-TASK-'] + ' created on ' + window['-DATE-'].get().split(' ')[0]
-        if task not in tasks:
-            tasks.append(task)
-        window1 = create_task(tasks)
-        window.close()
-        window = window1
-    elif event.startswith('-DEL-'):
-        # set idx equal to the last index of -DEL-{idx} after splitting on -DEL-
-        idx = int(event.split('-DEL-')[-1]) - 1
-        if tasks:
-            del tasks[idx]
 
-        window1 = create_task(tasks)
-        window.close()
-        window = window1
+def do_magic(window):
+    try:
+        save_temp_file('temp.txt')
+    except FileExistsError:     # if exists, overwrite it
+        shutil.move('temp.txt', 'temp.txt')
+    window.close()
+    create_main_window()
+    load_temp_file('temp.txt')
+    window1 = create_task(tasks)
+    remove('temp.txt')
 
-    elif event == '-SAVE-':
-        filename = f'{cur_date}.txt'
-        save_file(filename)
-        sg.popup('File saved')
-    elif event in ('Save As',):
-        filename = file_save_as()
-    elif event == '-LOAD-':
-        filename = load_file()
-        window1 = create_task(tasks)
-        window.close()
-        window = window1
+    return window1
+
+def main():
+    window = None
+
+    while True:
+        if window is None:
+            window = create_main_window()
+        event, values = window.read()
+
+        if event in ['-EXIT-', sg.WIN_CLOSED]:
+            break
+        if event == '-ADD-':
+            task = values['-TASK-'] + ' created on ' + window['-DATE-'].get().split(' ')[0]
+            if task not in tasks:
+                tasks.append(task)
+            window1 = create_task(tasks)
+            window.close()
+            window = window1
+        if event.startswith('-DEL-'):
+            idx = int(event.split('-DEL-')[-1])-1
+            if tasks:
+                del tasks[idx]
+
+            window1 = create_task(tasks)
+            window.close()
+            window = window1
+        if event == 'Save':
+            filename = f'{today}.txt'
+            save_file(filename)
+            sg.popup('File Saved')
+        if event in ('Save As',):
+            filename = save_file_as()
+        if event == 'Load':
+            filename = load_file()
+            window1 = create_task(tasks)
+            window.close()
+            window = window1
+        if event == 'Settings':
+            make_theme_window()
+
+            event, values = sg.Window('Choose Theme', [[sg.Combo(sg.theme_list(), key='-THEME LIST-'), sg.Ok(),
+                                                        sg.Cancel()]]).read(close=True)
+            if event == 'Ok':
+                sg.user_settings_set_entry('theme', values['-THEME LIST-'])
+
+                window = do_magic(window)
+
+
+
+if __name__ == '__main__':
+    main()
