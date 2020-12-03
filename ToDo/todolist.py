@@ -1,13 +1,12 @@
 # TODO: load_from_temp duplicates tasks, need to figure out why and stop it
-# TODO: comment code for reasons
-# TODO: add popups/windows for about and help
+# TODO: actually put info in about/help windows
 
 import PySimpleGUI as sg
 from os import path, remove
 from datetime import date
 import shutil
 
-# some vars
+# vars
 tool_menu = [
     ['File',['Save', 'Load']],
     ['Options',['Settings']],
@@ -18,6 +17,7 @@ tasks = []
 
 today = date.today().strftime('%d%b%Y')
 
+# main window
 def create_main_window():
     sg.theme(sg.user_settings_get_entry('theme', None))
 
@@ -34,6 +34,7 @@ def create_main_window():
     return sg.Window('Todo',  layout)
 
 
+# task layout and index assignment
 def create_task(tasks):
     layout = [
         [sg.Menu(tool_menu)],
@@ -57,6 +58,7 @@ def create_task(tasks):
     return window
 
 
+# theme window from clicking settings
 def make_theme_window():
     sg.theme(sg.user_settings_get_entry('theme', None))
 
@@ -68,6 +70,7 @@ def make_theme_window():
     return sg.Window('Current Theme', layout)
 
 
+# standard save
 def save_file(filename):
     if not path.exists(filename):
         if filename not in (None, ''):
@@ -86,6 +89,7 @@ def save_temp_file(filename):
                 f.write(task+'\n')
 
 
+# if file exists when in save_file, do this
 def save_file_as():
     filename = sg.popup_get_file('Save File', save_as=True, file_types=(('Text Files', '*.txt'),))
     if filename not in (None, '') and not isinstance(filename, tuple):
@@ -95,6 +99,7 @@ def save_file_as():
     return filename
 
 
+# standard load
 def load_file():
     filename = sg.popup_get_file('Browse', file_types=(('Text Files', '*.txt'),))
     if filename not in (None, ''):
@@ -106,6 +111,7 @@ def load_file():
     return filename
 
 
+# load temp file created from save_temp_file. only called with save_temp_file
 def load_temp_file(filename):
     if filename not in (None, ''):
         with open(filename, 'r') as f:
@@ -117,6 +123,7 @@ def load_temp_file(filename):
     return dedup_tasks
 
 
+# the magic behind making the theme change and not losing tasks
 def do_magic(window):
     try:
         save_temp_file('temp.txt')
@@ -126,10 +133,12 @@ def do_magic(window):
     create_main_window()
     load_temp_file('temp.txt')
     window1 = create_task(tasks)
-    remove('temp.txt')
+    remove('temp.txt')  # this handles the issue with temp.txt existing, but leaving it in just in case
 
     return window1
 
+
+# driver function
 def main():
     window = None
 
@@ -175,8 +184,14 @@ def main():
                 sg.user_settings_set_entry('theme', values['-THEME LIST-'])
 
                 window = do_magic(window)
+        if event == 'Help':
+            sg.popup_ok('Helpful info eventually here...............', title='Help window', )
+
+        if event == 'About':
+            sg.popup_ok('About stuff eventually here...................', title='About window')
 
 
 
+# do the thing
 if __name__ == '__main__':
     main()
