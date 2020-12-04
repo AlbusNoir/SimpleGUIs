@@ -111,18 +111,6 @@ def load_file():
     return filename
 
 
-# load temp file created from save_temp_file. only called with save_temp_file
-def load_temp_file(filename):
-    if filename not in (None, ''):
-        with open(filename, 'r') as f:
-            lines = f.readlines()
-            for line in lines:
-                line_stripped = line.rstrip('\n')
-                tasks.append(line_stripped)
-    dedup_tasks = list(dict.fromkeys(tasks))  # convert to dict to remove dups, reconvert to list
-    return dedup_tasks
-
-
 # the magic behind making the theme change and not losing tasks
 def do_magic(window):
     try:
@@ -131,7 +119,6 @@ def do_magic(window):
         shutil.move('temp.txt', 'temp.txt')
     window.close()
     create_main_window()
-    load_temp_file('temp.txt')
     window1 = create_task(tasks)
     remove('temp.txt')  # this handles the issue with temp.txt existing, but leaving it in just in case
 
