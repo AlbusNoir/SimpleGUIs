@@ -1,10 +1,8 @@
-# TODO: load_from_temp duplicates tasks, need to figure out why and stop it
-# TODO: actually put info in about/help windows
-
 import PySimpleGUI as sg
 from os import path, remove
 from datetime import date
 import shutil
+
 
 # vars
 tool_menu = [
@@ -125,6 +123,17 @@ def do_magic(window):
     return window1
 
 
+def save_on_exit(filename):
+    try:
+        with open(filename, 'w') as f:
+            for task in tasks:
+                f.write(task + '\n')
+    except FileExistsError:
+        shutil.move(filename, filename)  # overwrite, because this is only called on exit so
+
+
+
+
 # driver function
 def main():
     window = None
@@ -135,6 +144,8 @@ def main():
         event, values = window.read()
 
         if event in ['-EXIT-', sg.WIN_CLOSED]:
+            filename = f'{today}.txt'
+            save_on_exit(filename)
             break
         if event == '-ADD-':
             task = values['-TASK-'] + ' created on ' + window['-DATE-'].get().split(' ')[0]
@@ -172,11 +183,26 @@ def main():
 
                 window = do_magic(window)
         if event == 'Help':
-            sg.popup_ok('Helpful info eventually here...............', title='Help window', )
+            help_info = '''
+            Save - save a copy of your tasks
+            Load - load in tasks
+            Options>Settings - change the theme
+            To use: 
+            1)set the date
+            2)enter the name for your task
+            3)press add task
+            
+            Program will save your tasks on exit
+            '''
+            sg.popup_ok(f'{help_info}', title='Help window', )
 
         if event == 'About':
-            sg.popup_ok('About stuff eventually here...................', title='About window')
-
+            about_info = '''
+            Dev: Kale
+            Github: github.com/AlbusNoir
+            License: MIT License
+            '''
+            sg.popup_ok(f'{about_info}', title='About window')
 
 
 # do the thing
