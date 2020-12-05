@@ -2,18 +2,23 @@ import PySimpleGUI as sg
 from os import path, remove
 from datetime import date
 import shutil
+import webbrowser
 
 
 # vars
 tool_menu = [
     ['File',['Save', 'Load']],
     ['Options',['Settings']],
-    ['About',['Help', 'About']]   # help tells what things do
+    ['About/Contact',['Help', 'About', 'Contact',['Github', 'License Info', 'Website']]]   # help tells what things do
 ]
 
 tasks = []
 
 today = date.today().strftime('%d%b%Y')
+
+github = 'https://github.com/AlbusNoir'
+license = 'https://https://choosealicense.com/licenses/mit/'
+site = 'https://kalebsego.com'
 
 # main window
 def create_main_window():
@@ -124,12 +129,20 @@ def do_magic(window):
 
 
 def save_on_exit(filename):
-    try:
-        with open(filename, 'w') as f:
-            for task in tasks:
-                f.write(task + '\n')
-    except FileExistsError:
-        shutil.move(filename, filename)  # overwrite, because this is only called on exit so
+    if filename not in (None, ''):
+        if not path.exists(filename):
+            with open(filename, 'w') as f:
+                for task in tasks:
+                    f.write(task + '\n')
+        else:
+            filename_soe = f'{today}-soe.txt'
+            filename = filename_soe
+            try:
+                with open(filename, 'w') as f:
+                    for task in tasks:
+                        f.write(task + '\n')
+            except FileExistsError:
+                shutil.move(filename, filename)
 
 
 
@@ -198,11 +211,23 @@ def main():
 
         if event == 'About':
             about_info = '''
-            Dev: Kale
-            Github: github.com/AlbusNoir
-            License: MIT License
+            This is a simple little ToDo list GUI.
+            
+            Click License menu action for license info
+            
+            Click Contact menu action for contact info
             '''
             sg.popup_ok(f'{about_info}', title='About window')
+
+        if event == 'Github':
+            webbrowser.open(github)
+
+        if event == 'License Info':
+            webbrowser.open(license)
+
+        if event == 'Website':
+            webbrowser.open(site)
+
 
 
 # do the thing
